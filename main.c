@@ -27,6 +27,8 @@ typedef struct Sprite {
     SpriteDirection dir;
 } Sprite;
 
+static const int SPRITE_VECTOR_DEFAULT_CAPACITY = 4;
+
 typedef struct SpriteVector {
     Sprite *elements;  // address to the first element of this vector
     size_t size;       // number of elements
@@ -34,13 +36,11 @@ typedef struct SpriteVector {
 } SpriteVector;
 
 SpriteVector make_sprite_vector() {
-    const int DEFAULT_CAPACITY = 4;
-
     SpriteVector vec;
 
-    vec.elements = malloc(DEFAULT_CAPACITY * sizeof(Sprite));
+    vec.elements = malloc(SPRITE_VECTOR_DEFAULT_CAPACITY * sizeof(Sprite));
     vec.size = 0;
-    vec.capacity = DEFAULT_CAPACITY;
+    vec.capacity = SPRITE_VECTOR_DEFAULT_CAPACITY;
 
     return vec;
 }
@@ -51,13 +51,11 @@ void sprite_vector_dtr(SpriteVector *vec) {
 }
 
 void sprite_vector_push_back(SpriteVector *vec, const Sprite sprite) {
-    const int DEFAULT_CAPACITY = 4;
-
     // check if vector is full
     if (vec->size > 0 && vec->size % vec->capacity == 0) {
-        vec->capacity =
-            (vec->size / DEFAULT_CAPACITY) *
-            DEFAULT_CAPACITY;  // increase in steps of default capacity
+        // increase in steps of default capacity
+        vec->capacity = ((vec->size / SPRITE_VECTOR_DEFAULT_CAPACITY) + 1) *
+                        SPRITE_VECTOR_DEFAULT_CAPACITY;
         vec->elements = realloc(vec->elements, vec->capacity * sizeof(Sprite));
         printf("New sprite vector allocation: %zu\n", vec->capacity);
     }
@@ -84,11 +82,13 @@ SpriteVector load_level(Texture2D temp_tecture) {
             size_t x = i % level_width;
             size_t y = i / level_width;
 
-            Sprite sprite = {.texture = temp_tecture,
-                             .dest_rect = (Rectangle){.x = x * 32.0f,
-                                                      .y = y * 32.0f,
-                                                      .width = 32.0f,
-                                                      .height = 32.0f}};
+            Sprite sprite = {
+                .texture = temp_tecture,
+                .dest_rect = (Rectangle){.x = x * 32.0f,
+                                         .y = y * 32.0f,
+                                         .width = 32.0f,
+                                         .height = 32.0f}
+            };
             sprite_vector_push_back(&sprites, sprite);
         }
     }
@@ -204,6 +204,10 @@ int main() {
     };
 
     SpriteVector level_tiles = load_level(tiles_texture);
+    for (size_t i = 0; i <= level_tiles.size; i++) {
+        Sprite tile = level_tiles.elements[i];
+        printf("debug tile %zu %f %f\n", i, tile.dest_rect.x, tile.dest_rect.y);
+    }
 
     // run app
     while (!WindowShouldClose()) {
@@ -233,21 +237,24 @@ int main() {
         // draw tiles
         for (size_t i = 0; i <= level_tiles.size; i++) {
             Sprite tile = level_tiles.elements[i];
-            DrawTexturePro(tile.texture, (Rectangle){0, 0, 16, 16},  // source
-                           tile.dest_rect,                           // dest
-                           (Vector2){0, 0},                          // origin
-                           0.0,                                      // rotation
-                           RAYWHITE                                  // color
+            DrawTexturePro(
+                tile.texture,
+                (Rectangle){0, 0, 16, 16},  // source
+                tile.dest_rect,             // dest
+                (Vector2){0, 0},            // origin
+                0.0,                        // rotation
+                RAYWHITE                    // color
             );
         }
 
         // draw player
-        DrawTexturePro(player.texture,
-                       (Rectangle){0, 0, 16 * player.dir, 16},  // source
-                       player.dest_rect,                        // dest
-                       (Vector2){0, 0},                         // origin
-                       0.0,                                     // rotation
-                       RAYWHITE                                 // color
+        DrawTexturePro(
+            player.texture,
+            (Rectangle){0, 0, 16 * player.dir, 16},  // source
+            player.dest_rect,                        // dest
+            (Vector2){0, 0},                         // origin
+            0.0,                                     // rotation
+            RAYWHITE                                 // color
         );
 
         EndDrawing();
