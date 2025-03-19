@@ -19,3 +19,5 @@ cmake --build .
 ## TODO
 
 - Add instructions to setup assets for development.
+- Make it run on the web with WebAssembly
+- Add Address Sanitizer or Valgrind checking.
