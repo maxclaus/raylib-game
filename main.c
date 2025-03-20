@@ -98,6 +98,13 @@ SpriteVector load_level(Texture2D temp_texture) {
   return sprites;
 }
 
+void move_tiles(SpriteVector *tiles) {
+  for (size_t i = 0; i <= tiles->size; i++) {
+    Sprite *tile = &tiles->elements[i];
+    tile->dest_rect.y += 50.0f * GetFrameTime();
+  }
+}
+
 void move_player(Sprite *player) {
   // Resets the player's velocity to 0 every frame. This gives snappy start
   // and stop effect.
@@ -231,6 +238,7 @@ int main(void) {
   // run app
   while (!WindowShouldClose()) {
     // update section
+    move_tiles(&level_tiles);
     move_player(&player);
     apply_gravity(&player);
 
