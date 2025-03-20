@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.31)
 project(game)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -27,7 +27,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE raylib)
 target_include_directories(${PROJECT_NAME} PRIVATE ${raylib_SOURCE_DIR}/src)
 
 # Enable strict compiler warnings
-target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Wstrict-prototypes)
+target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Werror)
 
 # macOS framework linking
 if (APPLE)

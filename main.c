@@ -35,7 +35,7 @@ typedef struct SpriteVector {
     size_t capacity;   // current supported capacity
 } SpriteVector;
 
-SpriteVector make_sprite_vector() {
+SpriteVector make_sprite_vector(void) {
     SpriteVector vec;
 
     vec.elements = malloc(SPRITE_VECTOR_DEFAULT_CAPACITY * sizeof(Sprite));
@@ -186,7 +186,7 @@ void check_collisions_x(Sprite *sprite, SpriteVector *tiles) {
     }
 }
 
-int main() {
+int main(void) {
     // init app
     InitWindow(600, 400, "raylib - game");
     SetTargetFPS(60);
