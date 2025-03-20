@@ -3,10 +3,6 @@ project(game)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Set C Standard
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-
 # Dependencies
 include(FetchContent)
 
@@ -23,6 +19,7 @@ FetchContent_MakeAvailable(raylib)
 set(SOURCE_FILES main.c)
 
 add_executable(${PROJECT_NAME} ${SOURCE_FILES})
+target_compile_features(${PROJECT_NAME} PRIVATE c_std_99)
 target_link_libraries(${PROJECT_NAME} PRIVATE raylib)
 target_include_directories(${PROJECT_NAME} PRIVATE ${raylib_SOURCE_DIR}/src)
 
