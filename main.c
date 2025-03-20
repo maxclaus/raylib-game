@@ -112,7 +112,7 @@ void move_player(Sprite *player) {
     // NOTE: IsKeyPressed is different than IsKeyDown.
     // It is only true when the key is pressed on the exact same time.
     if (IsKeyPressed(KEY_SPACE)) {
-        player->vel.y = -300;
+        player->vel.y = -400;
     }
 }
 
