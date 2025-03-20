@@ -186,6 +186,21 @@ void check_collisions_x(Sprite *sprite, SpriteVector *tiles) {
     }
 }
 
+void enforce_boundaries(Sprite *player) {
+    // limit user fall to the ground
+    if (player->dest_rect.y > GetScreenHeight() - player->dest_rect.height) {
+        player->dest_rect.y = GetScreenHeight() - player->dest_rect.height;
+    }
+
+    // do not let user move horizontally out of the window
+    if (player->dest_rect.x < 0) {
+        player->dest_rect.x = 0;
+    } else if (player->dest_rect.x >
+               GetScreenWidth() - player->dest_rect.width) {
+        player->dest_rect.x = GetScreenWidth() - player->dest_rect.width;
+    }
+}
+
 int main(void) {
     // init app
     InitWindow(600, 400, "raylib - game");
@@ -221,10 +236,7 @@ int main(void) {
         apply_vel_x(&player);
         check_collisions_x(&player, &level_tiles);
 
-        // limit user fall to the ground
-        if (player.dest_rect.y > GetScreenHeight() - player.dest_rect.height) {
-            player.dest_rect.y = GetScreenHeight() - player.dest_rect.height;
-        }
+        enforce_boundaries(&player);
 
         // draw section
         BeginDrawing();
