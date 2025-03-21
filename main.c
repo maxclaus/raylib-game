@@ -4,9 +4,12 @@
 
 #include "raylib.h"
 
+const int WIN_WIDTH = 600;
+const int WIN_HEIGHT = 400;
+const int LEVEL_WIDTH = 8;   // number of rows
+const int LEVEL_HEIGTH = 6;  // number of columns
+
 // clang-format off
-const int LEVEL_WIDTH = 8; // number of rows
-const int LEVEL_HEIGTH = 6; // number of columns
 const int LEVEL[] = {
   0, 0, 0, 0, 0, 1, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 1,
@@ -16,6 +19,12 @@ const int LEVEL[] = {
   1, 1, 1, 1, 1, 1, 1, 1,
 };
 // clang-format on
+
+typedef enum GameStatus {
+  GameStatusBeginning = 1,
+  GameStatusRunning = 2,
+  GameStatusGameOver = 3,
+} GameStatus;
 
 typedef enum SpriteDirection {
   SpriteDirectionLeft = -1,
@@ -193,10 +202,10 @@ void check_collisions_x(Sprite *sprite, SpriteVector *tiles) {
   }
 }
 
-void enforce_boundaries(Sprite *player) {
+bool enforce_boundaries(Sprite *player) {
   // limit user fall to the ground
   if (player->dest_rect.y > GetScreenHeight() - player->dest_rect.height) {
-    player->dest_rect.y = GetScreenHeight() - player->dest_rect.height;
+    return false;
   }
 
   // do not let user move horizontally out of the window
@@ -205,11 +214,13 @@ void enforce_boundaries(Sprite *player) {
   } else if (player->dest_rect.x > GetScreenWidth() - player->dest_rect.width) {
     player->dest_rect.x = GetScreenWidth() - player->dest_rect.width;
   }
+
+  return true;
 }
 
 int main(void) {
   // init app
-  InitWindow(600, 400, "raylib - game");
+  InitWindow(WIN_WIDTH, WIN_HEIGHT, "Raylib - Game");
   SetTargetFPS(60);
 
   Texture2D player_idle_texture =
@@ -235,20 +246,39 @@ int main(void) {
     printf("debug tile %zu %f %f\n", i, tile.dest_rect.x, tile.dest_rect.y);
   }
 
+  GameStatus game_status = GameStatusBeginning;
+
   // run app
   while (!WindowShouldClose()) {
-    // update section
-    move_tiles(&level_tiles);
-    move_player(&player);
-    apply_gravity(&player);
+    printf("xgameover=%d keypressed=%d\n", game_status, GetKeyPressed());
 
-    // after all movement updates
-    apply_vel_y(&player);
-    check_collisions_y(&player, &level_tiles);
-    apply_vel_x(&player);
-    check_collisions_x(&player, &level_tiles);
+    if (game_status == GameStatusBeginning ||
+        game_status == GameStatusGameOver) {
+      // restart game
+      if (IsKeyPressed(KEY_ENTER)) {
+        game_status = GameStatusRunning;
+        player.dest_rect.x = 10.0;
+        player.dest_rect.y = 30.0;
+        level_tiles = load_level(tiles_texture);
+      }
+    }
 
-    enforce_boundaries(&player);
+    if (game_status == GameStatusRunning) {
+      // update section
+      move_tiles(&level_tiles);
+      move_player(&player);
+      apply_gravity(&player);
+
+      // after all movement updates
+      apply_vel_y(&player);
+      check_collisions_y(&player, &level_tiles);
+      apply_vel_x(&player);
+      check_collisions_x(&player, &level_tiles);
+
+      if (!enforce_boundaries(&player)) {
+        game_status = GameStatusGameOver;
+      }
+    }
 
     // draw section
     BeginDrawing();
@@ -256,32 +286,46 @@ int main(void) {
     // all drawing happens
     ClearBackground(SKYBLUE);
 
-    // DrawText("Game", 220, 20, 20, DARKGRAY);
+    if (game_status == GameStatusBeginning ||
+        game_status == GameStatusGameOver) {
+      // TODO: since the window isn't resizable we could hardcode pos_x for game
+      // over text
+      char *title =
+          game_status == GameStatusBeginning ? "Falling World" : "Game Over";
+      int title_size = 80;
+      int title_pos_x = (WIN_WIDTH / 2) - (MeasureText(title, title_size) / 2);
+      DrawText(title, title_pos_x, 20, title_size, BLACK);
+      DrawText("Press <Enter> to start", 100, 160, 20, BLACK);
+      DrawText("  Press <j> to move left", 100, 200, 20, BLACK);
+      DrawText("  Press <l> to move right", 100, 240, 20, BLACK);
+      DrawText("  Press <Space> to jump", 100, 280, 20, BLACK);
+      DrawText("Press <Esc> to exit", 100, 320, 20, BLACK);
+    } else if (game_status == GameStatusRunning) {
+      // draw tiles
+      for (size_t i = 0; i <= level_tiles.size; i++) {
+        Sprite tile = level_tiles.elements[i];
+        DrawTexturePro(
+            tile.texture, (Rectangle){0, 0, 16, 16},  // source
+            tile.dest_rect,                           // dest
+            (Vector2){0, 0},                          // origin
+            0.0,                                      // rotation
+            RAYWHITE                                  // color
+        );
+      }
 
-    // draw tiles
-    for (size_t i = 0; i <= level_tiles.size; i++) {
-      Sprite tile = level_tiles.elements[i];
+      // draw player
       DrawTexturePro(
-          tile.texture, (Rectangle){0, 0, 16, 16},  // source
-          tile.dest_rect,                           // dest
-          (Vector2){0, 0},                          // origin
-          0.0,                                      // rotation
-          RAYWHITE                                  // color
+          player.texture, (Rectangle){0, 0, 16 * player.dir, 16},  // source
+          player.dest_rect,                                        // dest
+          (Vector2){0, 0},                                         // origin
+          0.0,                                                     // rotation
+          RAYWHITE                                                 // color
       );
     }
 
-    // draw player
-    DrawTexturePro(
-        player.texture, (Rectangle){0, 0, 16 * player.dir, 16},  // source
-        player.dest_rect,                                        // dest
-        (Vector2){0, 0},                                         // origin
-        0.0,                                                     // rotation
-        RAYWHITE                                                 // color
-    );
-
     EndDrawing();
 
-    printf("frame=%f\n", GetFrameTime());
+    // printf("frame=%f\n", GetFrameTime());
   }
 
   // free memory
