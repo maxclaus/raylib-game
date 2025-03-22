@@ -6,10 +6,25 @@ This is based on [vimichael/intro-to-raylib](https://github.com/vimichael/intro-
 
 ## Running
 
+### Desktop
+
 ```
-cmake .
-cmake --build .
+cmake -S . -B build/desktop -DPLATFORM=Desktop
+cmake --build build/desktop
 ./game
+```
+
+### Web
+
+Building the game for web requires:
+
+- [emscripten](https://emscripten.org/docs/getting_started/downloads.html)
+
+```
+cmake -S . -B build/web -DPLATFORM=Web "-DCMAKE_TOOLCHAIN_FILE=../emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake"
+cmake --build build/web
+python -m http.server 8080 -d ./build/web
+# or: emrun build/web/game.html
 ```
 
 ## Assets
@@ -19,5 +34,4 @@ cmake --build .
 ## TODO
 
 - Add instructions to setup assets for development.
-- Make it run on the web with WebAssembly
 - Add Address Sanitizer or Valgrind checking.

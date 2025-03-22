@@ -4,6 +4,11 @@
 
 #include "raylib.h"
 
+#if defined(PLATFORM_WEB)
+#include <emscripten/emscripten.h>
+#endif
+
+const int FPS_FRAMELIMIT = 60;  // 60 frames-per-second
 const int WIN_WIDTH = 600;
 const int WIN_HEIGHT = 400;
 const int LEVEL_WIDTH = 8;   // number of rows
@@ -218,10 +223,96 @@ bool enforce_boundaries(Sprite *player) {
   return true;
 }
 
+typedef struct GameContext {
+  GameStatus status;
+  Sprite player;
+  SpriteVector level_tiles;
+  Texture2D tiles_texture;
+} GameContext;
+
+void UpdateDrawFrame(GameContext *ctx) {
+  // printf("xgameover=%d keypressed=%d\n", ctx->status, GetKeyPressed());
+
+  if (ctx->status == GameStatusBeginning || ctx->status == GameStatusGameOver) {
+    // restart game
+    if (IsKeyPressed(KEY_ENTER)) {
+      ctx->status = GameStatusRunning;
+      ctx->player.dest_rect.x = 10.0;
+      ctx->player.dest_rect.y = 30.0;
+      ctx->level_tiles = load_level(ctx->tiles_texture);
+    }
+  }
+
+  if (ctx->status == GameStatusRunning) {
+    // update section
+    move_tiles(&ctx->level_tiles);
+    move_player(&ctx->player);
+    apply_gravity(&ctx->player);
+
+    // after all movement updates
+    apply_vel_y(&ctx->player);
+    check_collisions_y(&ctx->player, &ctx->level_tiles);
+    apply_vel_x(&ctx->player);
+    check_collisions_x(&ctx->player, &ctx->level_tiles);
+
+    if (!enforce_boundaries(&ctx->player)) {
+      ctx->status = GameStatusGameOver;
+    }
+  }
+
+  // draw section
+  BeginDrawing();
+
+  // all drawing happens
+  ClearBackground(SKYBLUE);
+
+  if (ctx->status == GameStatusBeginning || ctx->status == GameStatusGameOver) {
+    // TODO: since the window isn't resizable we could hardcode pos_x for game
+    // over text
+    char *title =
+        ctx->status == GameStatusBeginning ? "Falling World" : "Game Over";
+    int title_size = 80;
+    int title_pos_x = (WIN_WIDTH / 2) - (MeasureText(title, title_size) / 2);
+    DrawText(title, title_pos_x, 20, title_size, BLACK);
+    DrawText("Press <Enter> to start", 100, 160, 20, BLACK);
+    DrawText("  Press <j> to move left", 100, 200, 20, BLACK);
+    DrawText("  Press <l> to move right", 100, 240, 20, BLACK);
+    DrawText("  Press <Space> to jump", 100, 280, 20, BLACK);
+    DrawText("Press <Esc> to exit", 100, 320, 20, BLACK);
+  } else if (ctx->status == GameStatusRunning) {
+    // draw tiles
+    for (size_t i = 0; i <= ctx->level_tiles.size; i++) {
+      Sprite tile = ctx->level_tiles.elements[i];
+      DrawTexturePro(
+          tile.texture, (Rectangle){0, 0, 16, 16},  // source
+          tile.dest_rect,                           // dest
+          (Vector2){0, 0},                          // origin
+          0.0,                                      // rotation
+          RAYWHITE                                  // color
+      );
+    }
+
+    // draw player
+    DrawTexturePro(
+        ctx->player.texture,
+        (Rectangle){0, 0, 16 * ctx->player.dir, 16},  // source
+        ctx->player.dest_rect,                        // dest
+        (Vector2){0, 0},                              // origin
+        0.0,                                          // rotation
+        RAYWHITE                                      // color
+    );
+  }
+
+  EndDrawing();
+
+  // printf("frame=%f\n", GetFrameTime());
+}
+
+void ESUpdateDrawFrame(void *arg) { UpdateDrawFrame((GameContext *)arg); }
+
 int main(void) {
   // init app
   InitWindow(WIN_WIDTH, WIN_HEIGHT, "Raylib - Game");
-  SetTargetFPS(60);
 
   Texture2D player_idle_texture =
       LoadTexture("assets/herochar/herochar_idle_anim_strip_4.png");
@@ -241,92 +332,26 @@ int main(void) {
   };
 
   SpriteVector level_tiles = load_level(tiles_texture);
-  for (size_t i = 0; i <= level_tiles.size; i++) {
-    Sprite tile = level_tiles.elements[i];
-    printf("debug tile %zu %f %f\n", i, tile.dest_rect.x, tile.dest_rect.y);
-  }
+  // for (size_t i = 0; i <= level_tiles.size; i++) {
+  //   Sprite tile = level_tiles.elements[i];
+  //   printf("debug tile %zu %f %f\n", i, tile.dest_rect.x, tile.dest_rect.y);
+  // }
 
-  GameStatus game_status = GameStatusBeginning;
+  GameContext ctx = (GameContext){.status = GameStatusBeginning,
+                                  .player = player,
+                                  .level_tiles = level_tiles,
+                                  .tiles_texture = tiles_texture};
 
-  // run app
+#if defined(PLATFORM_WEB)
+  emscripten_set_main_loop_arg(ESUpdateDrawFrame, &ctx, FPS_FRAMELIMIT, 1);
+#else
+  SetTargetFPS(FPS_FRAMELIMIT);
+
+  // Main game loop
   while (!WindowShouldClose()) {
-    printf("xgameover=%d keypressed=%d\n", game_status, GetKeyPressed());
-
-    if (game_status == GameStatusBeginning ||
-        game_status == GameStatusGameOver) {
-      // restart game
-      if (IsKeyPressed(KEY_ENTER)) {
-        game_status = GameStatusRunning;
-        player.dest_rect.x = 10.0;
-        player.dest_rect.y = 30.0;
-        level_tiles = load_level(tiles_texture);
-      }
-    }
-
-    if (game_status == GameStatusRunning) {
-      // update section
-      move_tiles(&level_tiles);
-      move_player(&player);
-      apply_gravity(&player);
-
-      // after all movement updates
-      apply_vel_y(&player);
-      check_collisions_y(&player, &level_tiles);
-      apply_vel_x(&player);
-      check_collisions_x(&player, &level_tiles);
-
-      if (!enforce_boundaries(&player)) {
-        game_status = GameStatusGameOver;
-      }
-    }
-
-    // draw section
-    BeginDrawing();
-
-    // all drawing happens
-    ClearBackground(SKYBLUE);
-
-    if (game_status == GameStatusBeginning ||
-        game_status == GameStatusGameOver) {
-      // TODO: since the window isn't resizable we could hardcode pos_x for game
-      // over text
-      char *title =
-          game_status == GameStatusBeginning ? "Falling World" : "Game Over";
-      int title_size = 80;
-      int title_pos_x = (WIN_WIDTH / 2) - (MeasureText(title, title_size) / 2);
-      DrawText(title, title_pos_x, 20, title_size, BLACK);
-      DrawText("Press <Enter> to start", 100, 160, 20, BLACK);
-      DrawText("  Press <j> to move left", 100, 200, 20, BLACK);
-      DrawText("  Press <l> to move right", 100, 240, 20, BLACK);
-      DrawText("  Press <Space> to jump", 100, 280, 20, BLACK);
-      DrawText("Press <Esc> to exit", 100, 320, 20, BLACK);
-    } else if (game_status == GameStatusRunning) {
-      // draw tiles
-      for (size_t i = 0; i <= level_tiles.size; i++) {
-        Sprite tile = level_tiles.elements[i];
-        DrawTexturePro(
-            tile.texture, (Rectangle){0, 0, 16, 16},  // source
-            tile.dest_rect,                           // dest
-            (Vector2){0, 0},                          // origin
-            0.0,                                      // rotation
-            RAYWHITE                                  // color
-        );
-      }
-
-      // draw player
-      DrawTexturePro(
-          player.texture, (Rectangle){0, 0, 16 * player.dir, 16},  // source
-          player.dest_rect,                                        // dest
-          (Vector2){0, 0},                                         // origin
-          0.0,                                                     // rotation
-          RAYWHITE                                                 // color
-      );
-    }
-
-    EndDrawing();
-
-    // printf("frame=%f\n", GetFrameTime());
+    UpdateDrawFrame(&ctx);
   }
+#endif
 
   // free memory
   UnloadTexture(player_idle_texture);
