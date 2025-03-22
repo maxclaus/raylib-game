@@ -2,8 +2,6 @@
 
 Simple 2D game written in C using raylib library.
 
-This is based on [vimichael/intro-to-raylib](https://github.com/vimichael/intro-to-raylib) project.
-
 ## Running
 
 ### Desktop
@@ -29,9 +27,14 @@ python -m http.server 8080 -d ./build/web
 
 ## Assets
 
-[platformer/metroidvania asset pack](https://o-lobster.itch.io/platformmetroidvania-pixel-art-asset-pack) (by [O_Lobster](https://o-lobster.itch.io/)).
+Assets used on this project come from [platformer/metroidvania asset pack](https://o-lobster.itch.io/platformmetroidvania-pixel-art-asset-pack) (by [O_Lobster](https://o-lobster.itch.io/)).
 
 ## TODO
 
 - Add instructions to setup assets for development.
 - Add Address Sanitizer or Valgrind checking.
+
+## Credits
+
+- Thanks [Michael](https://github.com/vimichael) for his basic intro to raylib project in C++ project - [vimichael/intro-to-raylib](https://github.com/vimichael/intro-to-raylib), which I used as a bootstrap for this game.
+- Thanks [O_Lobster](https://o-lobster.itch.io/) for providing incredible assets for 2D games.
