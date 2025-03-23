@@ -33,6 +33,7 @@ Assets used on this project come from [platformer/metroidvania asset pack](https
 
 - Add instructions to setup assets for development.
 - Add Address Sanitizer or Valgrind checking.
+- Add a server to record game data.
 
 ## Credits
 

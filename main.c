@@ -44,6 +44,12 @@ typedef struct Sprite {
   SpriteDirection dir;
 } Sprite;
 
+typedef struct Player {
+  Sprite sprite;
+  // whether this player is on top of a tile (not jumping or falling)
+  bool ground;
+} Player;
+
 static const int SPRITE_VECTOR_DEFAULT_CAPACITY = 4;
 
 typedef struct SpriteVector {
@@ -74,7 +80,6 @@ void sprite_vector_push_back(SpriteVector *vec, const Sprite sprite) {
     vec->capacity = ((vec->size / SPRITE_VECTOR_DEFAULT_CAPACITY) + 1) *
                     SPRITE_VECTOR_DEFAULT_CAPACITY;
     vec->elements = realloc(vec->elements, vec->capacity * sizeof(Sprite));
-    printf("New sprite vector allocation: %zu\n", vec->capacity);
   }
   vec->elements[vec->size++] = sprite;
 }
@@ -119,23 +124,24 @@ void move_tiles(SpriteVector *tiles) {
   }
 }
 
-void move_player(Sprite *player) {
+void move_player(Player *player) {
   // Resets the player's velocity to 0 every frame. This gives snappy start
   // and stop effect.
-  player->vel.x = 0.0;
+  player->sprite.vel.x = 0.0;
 
   if (IsKeyDown(KEY_L)) {
-    player->vel.x = 150.0;
-    player->dir = SpriteDirectionRight;
+    player->sprite.vel.x = 150.0;
+    player->sprite.dir = SpriteDirectionRight;
   } else if (IsKeyDown(KEY_J)) {
-    player->vel.x = -150.0;
-    player->dir = SpriteDirectionLeft;
+    player->sprite.vel.x = -150.0;
+    player->sprite.dir = SpriteDirectionLeft;
   }
 
+  // allow jumping only when the player is on top of a tile
   // NOTE: IsKeyPressed is different than IsKeyDown.
   // It is only true when the key is pressed on the exact same time.
-  if (IsKeyPressed(KEY_SPACE)) {
-    player->vel.y = -400;
+  if (player->ground && IsKeyPressed(KEY_SPACE)) {
+    player->sprite.vel.y = -400;
   }
 }
 
@@ -165,8 +171,9 @@ void apply_vel_y(Sprite *sprite) {
   sprite->dest_rect.y += sprite->vel.y * GetFrameTime();
 }
 
-void check_collisions_y(Sprite *sprite, SpriteVector *tiles) {
-  Rectangle hitbox = player_hitbox(sprite);
+void check_collisions_y(Player *player, SpriteVector *tiles) {
+  Rectangle hitbox = player_hitbox(&player->sprite);
+  player->ground = false;
 
   for (size_t i = 0; i <= tiles->size; i++) {
     Sprite tile = tiles->elements[i];
@@ -176,18 +183,21 @@ void check_collisions_y(Sprite *sprite, SpriteVector *tiles) {
       // reverse the overlap
 
       if (hitbox.y > tile.dest_rect.y) {
-        // moving sprite is on bottom
-        sprite->dest_rect.y = tile.dest_rect.y + tile.dest_rect.height - 8.0f;
+        // moving player is on bottom of a tile
+        player->sprite.dest_rect.y =
+            tile.dest_rect.y + tile.dest_rect.height - 8.0f;
       } else {
-        // moving sprite is on top
-        sprite->dest_rect.y = tile.dest_rect.y - sprite->dest_rect.height;
+        // moving player is on top of a tile
+        player->ground = true;
+        player->sprite.dest_rect.y =
+            tile.dest_rect.y - player->sprite.dest_rect.height;
       }
     }
   }
 }
 
-void check_collisions_x(Sprite *sprite, SpriteVector *tiles) {
-  Rectangle hitbox = player_hitbox(sprite);
+void check_collisions_x(Player *player, SpriteVector *tiles) {
+  Rectangle hitbox = player_hitbox(&player->sprite);
 
   for (size_t i = 0; i <= tiles->size; i++) {
     Sprite tile = tiles->elements[i];
@@ -198,26 +208,32 @@ void check_collisions_x(Sprite *sprite, SpriteVector *tiles) {
 
       if (hitbox.x > tile.dest_rect.x) {
         // moving sprite is on bottom
-        sprite->dest_rect.x = tile.dest_rect.x + tile.dest_rect.width - 8.0f;
+        player->sprite.dest_rect.x =
+            tile.dest_rect.x + tile.dest_rect.width - 8.0f;
       } else {
         // moving sprite is on top
-        sprite->dest_rect.x = tile.dest_rect.x - sprite->dest_rect.width + 8.0f;
+        player->sprite.dest_rect.x =
+            tile.dest_rect.x - player->sprite.dest_rect.width + 8.0f;
       }
     }
   }
 }
 
-bool enforce_boundaries(Sprite *player) {
+bool enforce_boundaries(Player *player) {
   // limit user fall to the ground
-  if (player->dest_rect.y > GetScreenHeight() - player->dest_rect.height) {
+  if (player->sprite.dest_rect.y >
+      GetScreenHeight() - player->sprite.dest_rect.height) {
     return false;
   }
 
   // do not let user move horizontally out of the window
-  if (player->dest_rect.x < 0) {
-    player->dest_rect.x = 0;
-  } else if (player->dest_rect.x > GetScreenWidth() - player->dest_rect.width) {
-    player->dest_rect.x = GetScreenWidth() - player->dest_rect.width;
+  if (player->sprite.dest_rect.x < 0) {
+    player->sprite.dest_rect.x = 0;
+  } else if (
+      player->sprite.dest_rect.x >
+      GetScreenWidth() - player->sprite.dest_rect.width) {
+    player->sprite.dest_rect.x =
+        GetScreenWidth() - player->sprite.dest_rect.width;
   }
 
   return true;
@@ -225,7 +241,7 @@ bool enforce_boundaries(Sprite *player) {
 
 typedef struct GameContext {
   GameStatus status;
-  Sprite player;
+  Player player;
   SpriteVector level_tiles;
   Texture2D tiles_texture;
 } GameContext;
@@ -237,8 +253,8 @@ void UpdateDrawFrame(GameContext *ctx) {
     // restart game
     if (IsKeyPressed(KEY_ENTER)) {
       ctx->status = GameStatusRunning;
-      ctx->player.dest_rect.x = 10.0;
-      ctx->player.dest_rect.y = 30.0;
+      ctx->player.sprite.dest_rect.x = 10.0;
+      ctx->player.sprite.dest_rect.y = 30.0;
       ctx->level_tiles = load_level(ctx->tiles_texture);
     }
   }
@@ -247,12 +263,12 @@ void UpdateDrawFrame(GameContext *ctx) {
     // update section
     move_tiles(&ctx->level_tiles);
     move_player(&ctx->player);
-    apply_gravity(&ctx->player);
+    apply_gravity(&ctx->player.sprite);
 
     // after all movement updates
-    apply_vel_y(&ctx->player);
+    apply_vel_y(&ctx->player.sprite);
     check_collisions_y(&ctx->player, &ctx->level_tiles);
-    apply_vel_x(&ctx->player);
+    apply_vel_x(&ctx->player.sprite);
     check_collisions_x(&ctx->player, &ctx->level_tiles);
 
     if (!enforce_boundaries(&ctx->player)) {
@@ -294,12 +310,12 @@ void UpdateDrawFrame(GameContext *ctx) {
 
     // draw player
     DrawTexturePro(
-        ctx->player.texture,
-        (Rectangle){0, 0, 16 * ctx->player.dir, 16},  // source
-        ctx->player.dest_rect,                        // dest
-        (Vector2){0, 0},                              // origin
-        0.0,                                          // rotation
-        RAYWHITE                                      // color
+        ctx->player.sprite.texture,
+        (Rectangle){0, 0, 16 * ctx->player.sprite.dir, 16},  // source
+        ctx->player.sprite.dest_rect,                        // dest
+        (Vector2){0, 0},                                     // origin
+        0.0,                                                 // rotation
+        RAYWHITE                                             // color
     );
   }
 
@@ -319,16 +335,20 @@ int main(void) {
 
   Texture2D tiles_texture = LoadTexture("assets/tiles_bg_fg/tileset.png");
 
-  Sprite player = (Sprite){
-      .texture = player_idle_texture,
-      .dest_rect =
-          (Rectangle){
-              .x = 10.0,
-              .y = 30.0,
-              .width = 32.0,
-              .height = 32.0,
+  Player player = (Player){
+      .sprite =
+          (Sprite){
+              .texture = player_idle_texture,
+              .dest_rect =
+                  (Rectangle){
+                      .x = 10.0,
+                      .y = 30.0,
+                      .width = 32.0,
+                      .height = 32.0,
+                  },
+              .dir = SpriteDirectionRight,
           },
-      .dir = SpriteDirectionRight,
+      .ground = false,
   };
 
   SpriteVector level_tiles = load_level(tiles_texture);
