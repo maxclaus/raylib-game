@@ -1,3 +1,4 @@
+#include <stdatomic.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -12,10 +13,14 @@ const int FPS_FRAMELIMIT = 60;  // 60 frames-per-second
 const int WIN_WIDTH = 600;
 const int WIN_HEIGHT = 400;
 const int LEVEL_WIDTH = 8;   // number of rows
-const int LEVEL_HEIGTH = 6;  // number of columns
+const int LEVEL_HEIGTH = 9;  // number of columns
 
+// TODO: add option to play with "random" levels
 // clang-format off
 const int LEVEL[] = {
+  0, 0, 0, 0, 0, 1, 0, 0,
+  0, 0, 0, 1, 0, 0, 0, 0,
+  0, 0, 0, 0, 1, 0, 0, 0,
   0, 0, 0, 0, 0, 1, 0, 0,
   0, 0, 0, 0, 0, 0, 0, 1,
   0, 0, 0, 0, 0, 0, 1, 0,
@@ -104,6 +109,7 @@ SpriteVector load_level(Texture2D temp_texture) {
 
       Sprite sprite = {
           .texture = temp_texture,
+          .vel = (Vector2){.x = 0, .y = 50},
           .dest_rect = (Rectangle){
               .x = x * size,
               .y = y * size,
@@ -117,10 +123,30 @@ SpriteVector load_level(Texture2D temp_texture) {
   return sprites;
 }
 
-void move_tiles(SpriteVector *tiles) {
+// move tiles down the screen and update current level.
+void move_tiles(SpriteVector *tiles, int *last_tile, int *level) {
+  int curr_tile = -1;
+
+  // TODO: skip tiles out of screen
+  // TODO: gradually increase velocity to make the game harder over time
   for (size_t i = 0; i <= tiles->size; i++) {
     Sprite *tile = &tiles->elements[i];
-    tile->dest_rect.y += 50.0f * GetFrameTime();
+    tile->dest_rect.y += tile->vel.y * GetFrameTime();
+
+    // last tile currently at the bottom of the screen
+    if (tile->dest_rect.y > WIN_HEIGHT) {
+      curr_tile = i;
+    }
+
+    // ignore tiles out of screen
+    if ((tile->dest_rect.y - tile->dest_rect.height) > WIN_HEIGHT) {
+      break;
+    }
+  }
+
+  if (*last_tile != curr_tile) {
+    *last_tile = curr_tile;
+    *level += 1;
   }
 }
 
@@ -239,16 +265,29 @@ bool enforce_boundaries(Player *player) {
   return true;
 }
 
+char *level_status(int level) {
+  char *buf = (char *)malloc(sizeof(char) * 10);
+  sprintf(buf, "Level: %d", level);
+  return buf;
+}
+
 typedef struct GameContext {
   GameStatus status;
   Player player;
   SpriteVector level_tiles;
   Texture2D tiles_texture;
+  int level;
+  int last_tile;
 } GameContext;
 
-void UpdateDrawFrame(GameContext *ctx) {
-  // printf("xgameover=%d keypressed=%d\n", ctx->status, GetKeyPressed());
+// Draw text horizontally centter (using default font)
+void DrawTextHorizontallyCenter(
+    const char *text, int posY, int fontSize, Color color) {
+  int posX = (WIN_WIDTH / 2) - (MeasureText(text, fontSize) / 2);
+  DrawText(text, posX, posY, fontSize, color);
+}
 
+void UpdateDrawFrame(GameContext *ctx) {
   if (ctx->status == GameStatusBeginning || ctx->status == GameStatusGameOver) {
     // restart game
     if (IsKeyPressed(KEY_ENTER)) {
@@ -256,12 +295,14 @@ void UpdateDrawFrame(GameContext *ctx) {
       ctx->player.sprite.dest_rect.x = 10.0;
       ctx->player.sprite.dest_rect.y = 30.0;
       ctx->level_tiles = load_level(ctx->tiles_texture);
+      ctx->level = 0;
+      ctx->last_tile = -1;
     }
   }
 
   if (ctx->status == GameStatusRunning) {
     // update section
-    move_tiles(&ctx->level_tiles);
+    move_tiles(&ctx->level_tiles, &ctx->last_tile, &ctx->level);
     move_player(&ctx->player);
     apply_gravity(&ctx->player.sprite);
 
@@ -277,6 +318,8 @@ void UpdateDrawFrame(GameContext *ctx) {
   }
 
   // draw section
+  // TODO: skip re-draw if there were no changes,
+  // for instance, the initial and game over screens.
   BeginDrawing();
 
   // all drawing happens
@@ -285,17 +328,23 @@ void UpdateDrawFrame(GameContext *ctx) {
   if (ctx->status == GameStatusBeginning || ctx->status == GameStatusGameOver) {
     // TODO: since the window isn't resizable we could hardcode pos_x for game
     // over text
-    char *title =
+    const char *title =
         ctx->status == GameStatusBeginning ? "Falling World" : "Game Over";
-    int title_size = 80;
-    int title_pos_x = (WIN_WIDTH / 2) - (MeasureText(title, title_size) / 2);
-    DrawText(title, title_pos_x, 20, title_size, BLACK);
-    DrawText("Press <Enter> to start", 100, 160, 20, BLACK);
-    DrawText("  Press <j> to move left", 100, 200, 20, BLACK);
-    DrawText("  Press <l> to move right", 100, 240, 20, BLACK);
-    DrawText("  Press <Space> to jump", 100, 280, 20, BLACK);
+    DrawTextHorizontallyCenter(title, 20, 80, BLACK);
+
+    if (ctx->status == GameStatusGameOver) {
+      DrawTextHorizontallyCenter(level_status(ctx->level), 100, 30, BLACK);
+    }
+
+    DrawText("Press <Enter> to start, then:", 100, 160, 20, BLACK);
+    DrawText("  - Press <j> to move left", 100, 200, 20, BLACK);
+    DrawText("  - Press <l> to move right", 100, 240, 20, BLACK);
+    DrawText("  - Press <Space> to jump", 100, 280, 20, BLACK);
     DrawText("Press <Esc> to exit", 100, 320, 20, BLACK);
   } else if (ctx->status == GameStatusRunning) {
+    // draw level count info
+    DrawText(level_status(ctx->level), 500, 20, 18, BLACK);
+
     // draw tiles
     for (size_t i = 0; i <= ctx->level_tiles.size; i++) {
       Sprite tile = ctx->level_tiles.elements[i];
@@ -320,8 +369,6 @@ void UpdateDrawFrame(GameContext *ctx) {
   }
 
   EndDrawing();
-
-  // printf("frame=%f\n", GetFrameTime());
 }
 
 void ESUpdateDrawFrame(void *arg) { UpdateDrawFrame((GameContext *)arg); }
@@ -352,15 +399,13 @@ int main(void) {
   };
 
   SpriteVector level_tiles = load_level(tiles_texture);
-  // for (size_t i = 0; i <= level_tiles.size; i++) {
-  //   Sprite tile = level_tiles.elements[i];
-  //   printf("debug tile %zu %f %f\n", i, tile.dest_rect.x, tile.dest_rect.y);
-  // }
 
   GameContext ctx = (GameContext){.status = GameStatusBeginning,
                                   .player = player,
                                   .level_tiles = level_tiles,
-                                  .tiles_texture = tiles_texture};
+                                  .tiles_texture = tiles_texture,
+                                  .last_tile = 0,
+                                  .level = 0};
 
 #if defined(PLATFORM_WEB)
   emscripten_set_main_loop_arg(ESUpdateDrawFrame, &ctx, FPS_FRAMELIMIT, 1);

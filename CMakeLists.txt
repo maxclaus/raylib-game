@@ -1,6 +1,12 @@
 cmake_minimum_required(VERSION 3.31)
 project(game)
 
+
+# we default to Release build type
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE "Release")
+endif()
+
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Dependencies
@@ -34,8 +40,13 @@ if (${PLATFORM} STREQUAL "Web")
   set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "--preload-file ${WEB_ASSETS_DIR}")
 endif ()
 
-# Enable strict compiler warnings
-target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Werror)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  message(STATUS "Building in debug mode")
+  target_compile_options(${PROJECT_NAME} PRIVATE -g -D_DEBUG -Wall -Wextra -Wpedantic -Werror)
+else()
+  message(STATUS "Building in release mode")
+  target_compile_options(${PROJECT_NAME} PRIVATE -O3 -Wall -Wextra -Wpedantic -Werror)
+endif()
 
 # macOS framework linking
 if (APPLE)
