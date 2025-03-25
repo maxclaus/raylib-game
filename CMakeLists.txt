@@ -42,7 +42,7 @@ endif ()
 
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
   message(STATUS "Building in debug mode")
-  target_compile_options(${PROJECT_NAME} PRIVATE -g -D_DEBUG -Wall -Wextra -Wpedantic -Werror)
+  target_compile_options(${PROJECT_NAME} PRIVATE -g -DDEBUG -Wall -Wextra -Wpedantic -Werror)
 else()
   message(STATUS "Building in release mode")
   target_compile_options(${PROJECT_NAME} PRIVATE -O3 -Wall -Wextra -Wpedantic -Werror)

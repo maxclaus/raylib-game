@@ -12,21 +12,25 @@
 const int FPS_FRAMELIMIT = 60;  // 60 frames-per-second
 const int WIN_WIDTH = 600;
 const int WIN_HEIGHT = 400;
-const int LEVEL_WIDTH = 8;   // number of rows
-const int LEVEL_HEIGTH = 9;  // number of columns
+const int LEVEL_WIDTH = 18;   // number of rows
+const int LEVEL_HEIGTH = 13;  // number of columns
 
 // TODO: add option to play with "random" levels
 // clang-format off
 const int LEVEL[] = {
-  0, 0, 0, 0, 0, 1, 0, 0,
-  0, 0, 0, 1, 0, 0, 0, 0,
-  0, 0, 0, 0, 1, 0, 0, 0,
-  0, 0, 0, 0, 0, 1, 0, 0,
-  0, 0, 0, 0, 0, 0, 0, 1,
-  0, 0, 0, 0, 0, 0, 1, 0,
-  0, 0, 0, 0, 0, 1, 0, 0,
-  0, 0, 1, 0, 1, 0, 0, 0,
-  1, 1, 1, 1, 1, 1, 1, 1,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,
+  0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1, 1, 0,
+  0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+  0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 };
 // clang-format on
 
@@ -109,7 +113,7 @@ SpriteVector load_level(Texture2D temp_texture) {
 
       Sprite sprite = {
           .texture = temp_texture,
-          .vel = (Vector2){.x = 0, .y = 50},
+          .vel = (Vector2){.x = 0, .y = 0},
           .dest_rect = (Rectangle){
               .x = x * size,
               .y = y * size,
@@ -131,6 +135,7 @@ void move_tiles(SpriteVector *tiles, int *last_tile, int *level) {
   // TODO: gradually increase velocity to make the game harder over time
   for (size_t i = 0; i <= tiles->size; i++) {
     Sprite *tile = &tiles->elements[i];
+    tile->vel.y += 10.0 * GetFrameTime();
     tile->dest_rect.y += tile->vel.y * GetFrameTime();
 
     // last tile currently at the bottom of the screen
@@ -278,6 +283,9 @@ typedef struct GameContext {
   Texture2D tiles_texture;
   int level;
   int last_tile;
+  // pause game in development to make it simpler to debug the UI
+  bool paused;
+  bool ready;
 } GameContext;
 
 // Draw text horizontally centter (using default font)
@@ -288,22 +296,33 @@ void DrawTextHorizontallyCenter(
 }
 
 void UpdateDrawFrame(GameContext *ctx) {
-  if (ctx->status == GameStatusBeginning || ctx->status == GameStatusGameOver) {
+#if defined(DEBUG)
+  if (IsKeyPressed(KEY_P)) {
+    ctx->paused = !ctx->paused;
+  }
+#endif
+
+  if (!ctx->paused && (ctx->status == GameStatusBeginning ||
+                       ctx->status == GameStatusGameOver)) {
     // restart game
     if (IsKeyPressed(KEY_ENTER)) {
+      // TODO: move this to a function
       ctx->status = GameStatusRunning;
-      ctx->player.sprite.dest_rect.x = 10.0;
+      ctx->player.sprite.dest_rect.x = 30.0;
       ctx->player.sprite.dest_rect.y = 30.0;
       ctx->level_tiles = load_level(ctx->tiles_texture);
       ctx->level = 0;
       ctx->last_tile = -1;
+      ctx->ready = false;
     }
   }
 
-  if (ctx->status == GameStatusRunning) {
+  if (!ctx->paused && ctx->status == GameStatusRunning) {
     // update section
-    move_tiles(&ctx->level_tiles, &ctx->last_tile, &ctx->level);
-    move_player(&ctx->player);
+    if (ctx->ready) {
+      move_tiles(&ctx->level_tiles, &ctx->last_tile, &ctx->level);
+      move_player(&ctx->player);
+    }
     apply_gravity(&ctx->player.sprite);
 
     // after all movement updates
@@ -311,6 +330,11 @@ void UpdateDrawFrame(GameContext *ctx) {
     check_collisions_y(&ctx->player, &ctx->level_tiles);
     apply_vel_x(&ctx->player.sprite);
     check_collisions_x(&ctx->player, &ctx->level_tiles);
+
+    if (!ctx->ready && ctx->player.ground) {
+      // game is ready for user to start playing.
+      ctx->ready = true;
+    }
 
     if (!enforce_boundaries(&ctx->player)) {
       ctx->status = GameStatusGameOver;
@@ -388,7 +412,7 @@ int main(void) {
               .texture = player_idle_texture,
               .dest_rect =
                   (Rectangle){
-                      .x = 10.0,
+                      .x = 30.0,
                       .y = 30.0,
                       .width = 32.0,
                       .height = 32.0,
@@ -405,7 +429,8 @@ int main(void) {
                                   .level_tiles = level_tiles,
                                   .tiles_texture = tiles_texture,
                                   .last_tile = 0,
-                                  .level = 0};
+                                  .level = 0,
+                                  .ready = false};
 
 #if defined(PLATFORM_WEB)
   emscripten_set_main_loop_arg(ESUpdateDrawFrame, &ctx, FPS_FRAMELIMIT, 1);
