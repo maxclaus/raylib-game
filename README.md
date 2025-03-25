@@ -31,6 +31,7 @@ Assets used on this project come from [platformer/metroidvania asset pack](https
 
 ## TODO
 
+- Publish game to https://itch.io/.
 - Change levels to have y position set based on the bottom of the screen instead of the top of the screen.
 - Add instructions to setup assets for development.
 - Add Address Sanitizer or Valgrind checking.
