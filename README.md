@@ -31,6 +31,8 @@ Assets used on this project come from [platformer/metroidvania asset pack](https
 
 ## TODO
 
+- Add a different kind of tile which resets the ground moving velocity.
+- Add audio soundtrack.
 - Publish game to https://itch.io/.
 - Change levels to have y position set based on the bottom of the screen instead of the top of the screen.
 - Add instructions to setup assets for development.

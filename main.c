@@ -271,8 +271,8 @@ bool enforce_boundaries(Player *player) {
 }
 
 char *level_status(int level) {
-  char *buf = (char *)malloc(sizeof(char) * 10);
-  sprintf(buf, "Level: %d", level);
+  char *buf = (char *)malloc(sizeof(char) * 17);
+  sprintf(buf, "Got to level: %d", level);
   return buf;
 }
 
@@ -287,6 +287,45 @@ typedef struct GameContext {
   bool paused;
   bool ready;
 } GameContext;
+
+GameContext make_game_context(
+    Texture2D player_idle_texture, Texture2D tiles_texture) {
+  Player player = (Player){
+      .sprite =
+          (Sprite){
+              .texture = player_idle_texture,
+              .dest_rect =
+                  (Rectangle){
+                      .x = 30.0,
+                      .y = 30.0,
+                      .width = 32.0,
+                      .height = 32.0,
+                  },
+              .dir = SpriteDirectionRight,
+          },
+      .ground = false,
+  };
+
+  return (GameContext){.status = GameStatusBeginning,
+                       .player = player,
+                       .level_tiles = load_level(tiles_texture),
+                       .tiles_texture = tiles_texture,
+                       .last_tile = 0,
+                       .level = 0,
+                       .ready = false};
+}
+
+void reset_game_context(GameContext *ctx) {
+  ctx->status = GameStatusRunning;
+  ctx->player.sprite.dest_rect.x = 30.0;
+  ctx->player.sprite.dest_rect.y = 30.0;
+  ctx->player.sprite.vel.x = 0.0;
+  ctx->player.sprite.vel.y = 0.0;
+  ctx->level_tiles = load_level(ctx->tiles_texture);
+  ctx->level = 0;
+  ctx->last_tile = -1;
+  ctx->ready = false;
+}
 
 // Draw text horizontally centter (using default font)
 void DrawTextHorizontallyCenter(
@@ -306,14 +345,7 @@ void UpdateDrawFrame(GameContext *ctx) {
                        ctx->status == GameStatusGameOver)) {
     // restart game
     if (IsKeyPressed(KEY_ENTER)) {
-      // TODO: move this to a function
-      ctx->status = GameStatusRunning;
-      ctx->player.sprite.dest_rect.x = 30.0;
-      ctx->player.sprite.dest_rect.y = 30.0;
-      ctx->level_tiles = load_level(ctx->tiles_texture);
-      ctx->level = 0;
-      ctx->last_tile = -1;
-      ctx->ready = false;
+      reset_game_context(ctx);
     }
   }
 
@@ -406,31 +438,7 @@ int main(void) {
 
   Texture2D tiles_texture = LoadTexture("assets/tiles_bg_fg/tileset.png");
 
-  Player player = (Player){
-      .sprite =
-          (Sprite){
-              .texture = player_idle_texture,
-              .dest_rect =
-                  (Rectangle){
-                      .x = 30.0,
-                      .y = 30.0,
-                      .width = 32.0,
-                      .height = 32.0,
-                  },
-              .dir = SpriteDirectionRight,
-          },
-      .ground = false,
-  };
-
-  SpriteVector level_tiles = load_level(tiles_texture);
-
-  GameContext ctx = (GameContext){.status = GameStatusBeginning,
-                                  .player = player,
-                                  .level_tiles = level_tiles,
-                                  .tiles_texture = tiles_texture,
-                                  .last_tile = 0,
-                                  .level = 0,
-                                  .ready = false};
+  GameContext ctx = make_game_context(player_idle_texture, tiles_texture);
 
 #if defined(PLATFORM_WEB)
   emscripten_set_main_loop_arg(ESUpdateDrawFrame, &ctx, FPS_FRAMELIMIT, 1);
