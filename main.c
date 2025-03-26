@@ -103,12 +103,12 @@ SpriteVector load_level(Texture2D temp_texture) {
     // [_, o, _]
     // In this example, if index is at 'o', then its value is 7.
     // The width of level is 3, so the x component would be 7 % 3  = 1.
-    // The y component would be 7 / 3 = 2.
+    // The y component would be 3 - (7 / 3) = 1.
 
     // Add sprite to list
     if (LEVEL[i] > 0) {
       size_t x = i % LEVEL_WIDTH;
-      size_t y = i / LEVEL_WIDTH;
+      size_t y = LEVEL_HEIGTH - (i / LEVEL_WIDTH);
       float size = 32.0f;
 
       Sprite sprite = {
@@ -116,7 +116,7 @@ SpriteVector load_level(Texture2D temp_texture) {
           .vel = (Vector2){.x = 0, .y = 0},
           .dest_rect = (Rectangle){
               .x = x * size,
-              .y = y * size,
+              .y = WIN_HEIGHT - (y * size),
               .width = size,
               .height = size,
           }};
@@ -132,7 +132,6 @@ void move_tiles(SpriteVector *tiles, int *last_tile, int *level) {
   int curr_tile = -1;
 
   // TODO: skip tiles out of screen
-  // TODO: gradually increase velocity to make the game harder over time
   for (size_t i = 0; i <= tiles->size; i++) {
     Sprite *tile = &tiles->elements[i];
     tile->vel.y += 10.0 * GetFrameTime();
