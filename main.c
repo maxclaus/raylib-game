@@ -419,7 +419,9 @@ void UpdateDrawFrame(GameContext *ctx) {
     DrawText("  - Press <j> to move left", 100, 200, 20, BLACK);
     DrawText("  - Press <l> to move right", 100, 240, 20, BLACK);
     DrawText("  - Press <Space> to jump", 100, 280, 20, BLACK);
+#if defined(PLATFORM_DESKTOP)
     DrawText("Press <Esc> to exit", 100, 320, 20, BLACK);
+#endif
   } else if (ctx->status == GameStatusRunning) {
     // draw tiles
     for (size_t i = 0; i <= ctx->level_tiles.size; i++) {
