@@ -38,6 +38,7 @@ typedef enum GameStatus {
   GameStatusBeginning = 1,
   GameStatusRunning = 2,
   GameStatusGameOver = 3,
+  GameStatusWon = 4,
 } GameStatus;
 
 typedef enum SpriteDirection {
@@ -270,8 +271,8 @@ bool enforce_boundaries(Player *player) {
 }
 
 char *level_status(int level) {
-  char *buf = (char *)malloc(sizeof(char) * 17);
-  sprintf(buf, "Got to level: %d", level);
+  char *buf = (char *)malloc(sizeof(char) * 10);
+  sprintf(buf, "Level: %d", level);
   return buf;
 }
 
@@ -283,7 +284,7 @@ typedef struct GameContext {
   int level;
   int last_tile;
   // pause game in development to make it simpler to debug the UI
-  bool paused;
+  bool dev_paused;
   bool ready;
 } GameContext;
 
@@ -336,19 +337,19 @@ void DrawTextHorizontallyCenter(
 void UpdateDrawFrame(GameContext *ctx) {
 #if defined(DEBUG)
   if (IsKeyPressed(KEY_P)) {
-    ctx->paused = !ctx->paused;
+    ctx->dev_paused = !ctx->dev_paused;
   }
 #endif
 
-  if (!ctx->paused && (ctx->status == GameStatusBeginning ||
-                       ctx->status == GameStatusGameOver)) {
+  if (!ctx->dev_paused && (ctx->status == GameStatusBeginning ||
+                           ctx->status == GameStatusGameOver)) {
     // restart game
     if (IsKeyPressed(KEY_ENTER)) {
       reset_game_context(ctx);
     }
   }
 
-  if (!ctx->paused && ctx->status == GameStatusRunning) {
+  if (!ctx->dev_paused && ctx->status == GameStatusRunning) {
     // update section
     if (ctx->ready) {
       move_tiles(&ctx->level_tiles, &ctx->last_tile, &ctx->level);
@@ -370,6 +371,10 @@ void UpdateDrawFrame(GameContext *ctx) {
     if (!enforce_boundaries(&ctx->player)) {
       ctx->status = GameStatusGameOver;
     }
+
+    if (ctx->player.ground && ctx->last_tile == 1) {
+      ctx->status = GameStatusWon;
+    }
   }
 
   // draw section
@@ -380,14 +385,27 @@ void UpdateDrawFrame(GameContext *ctx) {
   // all drawing happens
   ClearBackground(SKYBLUE);
 
-  if (ctx->status == GameStatusBeginning || ctx->status == GameStatusGameOver) {
+  if (ctx->status == GameStatusBeginning || ctx->status == GameStatusGameOver ||
+      ctx->status == GameStatusWon) {
     // TODO: since the window isn't resizable we could hardcode pos_x for game
     // over text
-    const char *title =
-        ctx->status == GameStatusBeginning ? "Falling World" : "Game Over";
+    const char *title;
+    switch (ctx->status) {
+      case GameStatusGameOver: {
+        title = "Game Over";
+        break;
+      }
+      case GameStatusWon: {
+        title = "You Won!";
+        break;
+      }
+      default: {
+        title = "Falling World";
+      }
+    }
     DrawTextHorizontallyCenter(title, 20, 80, BLACK);
 
-    if (ctx->status == GameStatusGameOver) {
+    if (ctx->status == GameStatusGameOver || ctx->status == GameStatusWon) {
       DrawTextHorizontallyCenter(level_status(ctx->level), 100, 30, BLACK);
     }
 
