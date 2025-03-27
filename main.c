@@ -155,7 +155,7 @@ void move_tiles(SpriteVector *tiles, int *last_tile, int *level) {
   }
 }
 
-void move_player(Player *player) {
+void move_player(Player *player, Sound *jump_sound) {
   // Resets the player's velocity to 0 every frame. This gives snappy start
   // and stop effect.
   player->sprite.vel.x = 0.0;
@@ -173,6 +173,7 @@ void move_player(Player *player) {
   // It is only true when the key is pressed on the exact same time.
   if (player->ground && IsKeyPressed(KEY_SPACE)) {
     player->sprite.vel.y = -400;
+    PlaySound(*jump_sound);
   }
 }
 
@@ -281,6 +282,9 @@ typedef struct GameContext {
   Player player;
   SpriteVector level_tiles;
   Texture2D tiles_texture;
+  Sound jump_sound;
+  Sound win_sound;
+  Sound lose_sound;
   int level;
   int last_tile;
   // pause game in development to make it simpler to debug the UI
@@ -289,7 +293,8 @@ typedef struct GameContext {
 } GameContext;
 
 GameContext make_game_context(
-    Texture2D player_idle_texture, Texture2D tiles_texture) {
+    Texture2D player_idle_texture, Texture2D tiles_texture, Sound jump_sound,
+    Sound win_sound, Sound lose_sound) {
   Player player = (Player){
       .sprite =
           (Sprite){
@@ -310,6 +315,9 @@ GameContext make_game_context(
                        .player = player,
                        .level_tiles = load_level(tiles_texture),
                        .tiles_texture = tiles_texture,
+                       .jump_sound = jump_sound,
+                       .win_sound = win_sound,
+                       .lose_sound = lose_sound,
                        .last_tile = 0,
                        .level = 0,
                        .ready = false};
@@ -353,7 +361,7 @@ void UpdateDrawFrame(GameContext *ctx) {
     // update section
     if (ctx->ready) {
       move_tiles(&ctx->level_tiles, &ctx->last_tile, &ctx->level);
-      move_player(&ctx->player);
+      move_player(&ctx->player, &ctx->jump_sound);
     }
     apply_gravity(&ctx->player.sprite);
 
@@ -370,6 +378,12 @@ void UpdateDrawFrame(GameContext *ctx) {
 
     if (!enforce_boundaries(&ctx->player)) {
       ctx->status = GameStatusGameOver;
+    }
+
+    if (ctx->status == GameStatusWon) {
+      PlaySound(ctx->win_sound);
+    } else if (ctx->status == GameStatusGameOver) {
+      PlaySound(ctx->lose_sound);
     }
   }
 
@@ -445,13 +459,17 @@ void ESUpdateDrawFrame(void *arg) { UpdateDrawFrame((GameContext *)arg); }
 int main(void) {
   // init app
   InitWindow(WIN_WIDTH, WIN_HEIGHT, "Raylib - Game");
+  InitAudioDevice();
 
   Texture2D player_idle_texture =
       LoadTexture("assets/herochar_idle_anim_strip_4.png");
-
   Texture2D tiles_texture = LoadTexture("assets/tileset.png");
+  Sound jump_sound = LoadSound("assets/jump.wav");
+  Sound win_sound = LoadSound("assets/win.wav");
+  Sound lose_sound = LoadSound("assets/lose.wav");
 
-  GameContext ctx = make_game_context(player_idle_texture, tiles_texture);
+  GameContext ctx = make_game_context(
+      player_idle_texture, tiles_texture, jump_sound, win_sound, lose_sound);
 
 #if defined(PLATFORM_WEB)
   emscripten_set_main_loop_arg(ESUpdateDrawFrame, &ctx, FPS_FRAMELIMIT, 1);
@@ -467,8 +485,12 @@ int main(void) {
   // free memory
   UnloadTexture(player_idle_texture);
   UnloadTexture(tiles_texture);
+  UnloadSound(jump_sound);
+  UnloadSound(win_sound);
+  UnloadSound(lose_sound);
 
   // close app
+  CloseAudioDevice();
   CloseWindow();
 
   return 0;
