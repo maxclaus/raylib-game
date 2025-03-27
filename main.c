@@ -451,9 +451,9 @@ int main(void) {
   InitWindow(WIN_WIDTH, WIN_HEIGHT, "Raylib - Game");
 
   Texture2D player_idle_texture =
-      LoadTexture("assets/herochar/herochar_idle_anim_strip_4.png");
+      LoadTexture("assets/herochar_idle_anim_strip_4.png");
 
-  Texture2D tiles_texture = LoadTexture("assets/tiles_bg_fg/tileset.png");
+  Texture2D tiles_texture = LoadTexture("assets/tileset.png");
 
   GameContext ctx = make_game_context(player_idle_texture, tiles_texture);
 

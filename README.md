@@ -27,7 +27,7 @@ python -m http.server 8080 -d ./build/web
 
 ## Assets
 
-Assets used on this project come from [platformer/metroidvania asset pack](https://o-lobster.itch.io/platformmetroidvania-pixel-art-asset-pack) (by [O_Lobster](https://o-lobster.itch.io/)).
+Assets used on this project are from [platformer/metroidvania asset pack](https://o-lobster.itch.io/platformmetroidvania-pixel-art-asset-pack) (by [O_Lobster](https://o-lobster.itch.io/)).
 
 ## TODO
 
@@ -35,7 +35,6 @@ Assets used on this project come from [platformer/metroidvania asset pack](https
 - Add audio soundtrack.
 - Publish game to https://itch.io/.
 - Change levels to have y position set based on the bottom of the screen instead of the top of the screen.
-- Add instructions to setup assets for development.
 - Add Address Sanitizer or Valgrind checking.
 - Add a server to record game data.
 

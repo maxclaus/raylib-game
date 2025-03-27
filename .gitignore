@@ -2,7 +2,7 @@
 build
 compile_commands.json
 
-assets
+assets-o_lobster
 
 .DS_Store
 .cache
