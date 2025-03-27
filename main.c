@@ -202,7 +202,8 @@ void apply_vel_y(Sprite *sprite) {
   sprite->dest_rect.y += sprite->vel.y * GetFrameTime();
 }
 
-void check_collisions_y(Player *player, SpriteVector *tiles) {
+void check_collisions_y(
+    Player *player, SpriteVector *tiles, GameStatus *gstatus) {
   Rectangle hitbox = player_hitbox(&player->sprite);
   player->ground = false;
 
@@ -222,6 +223,11 @@ void check_collisions_y(Player *player, SpriteVector *tiles) {
         player->ground = true;
         player->sprite.dest_rect.y =
             tile.dest_rect.y - player->sprite.dest_rect.height;
+
+        // got to last tile
+        if (i == 0) {
+          *gstatus = GameStatusWon;
+        }
       }
     }
   }
@@ -268,12 +274,6 @@ bool enforce_boundaries(Player *player) {
   }
 
   return true;
-}
-
-char *level_status(int level) {
-  char *buf = (char *)malloc(sizeof(char) * 10);
-  sprintf(buf, "Level: %d", level);
-  return buf;
 }
 
 typedef struct GameContext {
@@ -359,7 +359,7 @@ void UpdateDrawFrame(GameContext *ctx) {
 
     // after all movement updates
     apply_vel_y(&ctx->player.sprite);
-    check_collisions_y(&ctx->player, &ctx->level_tiles);
+    check_collisions_y(&ctx->player, &ctx->level_tiles, &ctx->status);
     apply_vel_x(&ctx->player.sprite);
     check_collisions_x(&ctx->player, &ctx->level_tiles);
 
@@ -370,10 +370,6 @@ void UpdateDrawFrame(GameContext *ctx) {
 
     if (!enforce_boundaries(&ctx->player)) {
       ctx->status = GameStatusGameOver;
-    }
-
-    if (ctx->player.ground && ctx->last_tile == 1) {
-      ctx->status = GameStatusWon;
     }
   }
 
@@ -405,19 +401,12 @@ void UpdateDrawFrame(GameContext *ctx) {
     }
     DrawTextHorizontallyCenter(title, 20, 80, BLACK);
 
-    if (ctx->status == GameStatusGameOver || ctx->status == GameStatusWon) {
-      DrawTextHorizontallyCenter(level_status(ctx->level), 100, 30, BLACK);
-    }
-
     DrawText("Press <Enter> to start, then:", 100, 160, 20, BLACK);
     DrawText("  - Press <j> to move left", 100, 200, 20, BLACK);
     DrawText("  - Press <l> to move right", 100, 240, 20, BLACK);
     DrawText("  - Press <Space> to jump", 100, 280, 20, BLACK);
     DrawText("Press <Esc> to exit", 100, 320, 20, BLACK);
   } else if (ctx->status == GameStatusRunning) {
-    // draw level count info
-    DrawText(level_status(ctx->level), 500, 20, 18, BLACK);
-
     // draw tiles
     for (size_t i = 0; i <= ctx->level_tiles.size; i++) {
       Sprite tile = ctx->level_tiles.elements[i];
