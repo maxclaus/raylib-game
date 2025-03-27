@@ -1,6 +1,6 @@
 # raylib-game
 
-Simple 2D game written in C using raylib library.
+This is Falling World, a simple 2D game written in C using raylib library.
 
 ## Running
 
@@ -37,7 +37,6 @@ Sounds generated with [rFXGen](https://raylibtech.itch.io/rfxgen).
 
 - Add a different kind of tile which resets the ground moving velocity.
 - Publish game to https://itch.io/.
-- Change levels to have y position set based on the bottom of the screen instead of the top of the screen.
 - Add Address Sanitizer or Valgrind checking.
 - Add a server to record game data.
 

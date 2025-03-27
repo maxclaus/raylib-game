@@ -460,7 +460,7 @@ void ESUpdateDrawFrame(void *arg) { UpdateDrawFrame((GameContext *)arg); }
 
 int main(void) {
   // init app
-  InitWindow(WIN_WIDTH, WIN_HEIGHT, "Raylib - Game");
+  InitWindow(WIN_WIDTH, WIN_HEIGHT, "Falling World");
   InitAudioDevice();
 
   Texture2D player_idle_texture =
