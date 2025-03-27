@@ -422,11 +422,11 @@ void UpdateDrawFrame(GameContext *ctx) {
     for (size_t i = 0; i <= ctx->level_tiles.size; i++) {
       Sprite tile = ctx->level_tiles.elements[i];
       DrawTexturePro(
-          tile.texture, (Rectangle){0, 0, 16, 16},  // source
-          tile.dest_rect,                           // dest
-          (Vector2){0, 0},                          // origin
-          0.0,                                      // rotation
-          RAYWHITE                                  // color
+          tile.texture, (Rectangle){16, 0, 16, 16},  // source
+          tile.dest_rect,                            // dest
+          (Vector2){0, 0},                           // origin
+          0.0,                                       // rotation
+          RAYWHITE                                   // color
       );
     }
 
