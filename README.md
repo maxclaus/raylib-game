@@ -2,12 +2,14 @@
 
 This is Falling World, a simple 2D game written in C using raylib library.
 
+The game is available to play online at [itch.io](https://maxclaus.itch.io/falling-world).
+
 ## Running
 
 ### Desktop
 
 ```
-cmake -S . -B build/desktop -DPLATFORM=Desktop
+cmake -S . -B build/desktop -DPLATFORM=Desktop -DCMAKE_BUILD_TYPE=Debug
 cmake --build build/desktop
 ./game
 ```
@@ -19,28 +21,26 @@ Building the game for web requires:
 - [emscripten](https://emscripten.org/docs/getting_started/downloads.html)
 
 ```
-cmake -S . -B build/web -DPLATFORM=Web "-DCMAKE_TOOLCHAIN_FILE=../emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake"
+cmake -S . -B build/web -DPLATFORM=Web "-DCMAKE_TOOLCHAIN_FILE=../emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake" -DCMAKE_BUILD_TYPE=Debug
 cmake --build build/web
 python -m http.server 8080 -d ./build/web
 # or: emrun build/web/game.html
 ```
 
-## Assets textures
+To build the web version for release run `./scripts/release-web.sh`.
 
-Assets used on this project for textures are from [platformer/metroidvania asset pack](https://o-lobster.itch.io/platformmetroidvania-pixel-art-asset-pack) (by [O_Lobster](https://o-lobster.itch.io/)).
+## Assets
 
-## Assets sounds
-
-Sounds generated with [rFXGen](https://raylibtech.itch.io/rfxgen).
-
-## TODO
-
-- Add a different kind of tile which resets the ground moving velocity.
-- Publish game to https://itch.io/.
-- Add Address Sanitizer or Valgrind checking.
-- Add a server to record game data.
+- **Textures**: Assets used on this project for textures are from [platformer/metroidvania asset pack](https://o-lobster.itch.io/platformmetroidvania-pixel-art-asset-pack) (by [O_Lobster](https://o-lobster.itch.io/)).
+- _Sounds_: Sounds generated with [rFXGen](https://raylibtech.itch.io/rfxgen).
 
 ## Credits
 
 - Thanks [Michael](https://github.com/vimichael) for his basic intro to raylib project in C++ project - [vimichael/intro-to-raylib](https://github.com/vimichael/intro-to-raylib), which I used as a bootstrap for this game.
 - Thanks [O_Lobster](https://o-lobster.itch.io/) for providing incredible assets for 2D games.
+
+## TODO
+
+- Add a different kind of tile which resets the ground moving velocity.
+- Add Address Sanitizer or Valgrind checking.
+- Add a server to record game data.

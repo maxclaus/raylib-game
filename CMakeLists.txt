@@ -32,7 +32,13 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${raylib_SOURCE_DIR}/src)
 if (${PLATFORM} STREQUAL "Web")
   message(STATUS "Building for web with emscripten")
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -s USE_GLFW=3 -s ASSERTIONS=1 -s WASM=1 -s ASYNCIFY -s GL_ENABLE_GET_PROC_ADDRESS=1")
-  set(CMAKE_EXECUTABLE_SUFFIX ".html") # This line is used to set your executable to build with the emscripten html template so that you can directly open it.
+
+  if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --shell-file ./_deps/raylib-src/src/minshell.html")
+  endif()
+
+  # This line is used to set your executable to build with the emscripten html template so that you can directly open it.
+  set_target_properties(${PROJECT_NAME} PROPERTIES SUFFIX ".html")
 
   # Configure assets for web
   set(WEB_ASSETS_DIR "${CMAKE_SOURCE_DIR}/assets" CACHE STRING "dir for assets")
