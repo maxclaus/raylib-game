@@ -27,12 +27,14 @@ python -m http.server 8080 -d ./build/web
 # or: emrun build/web/game.html
 ```
 
-To build the web version for release run `./scripts/release-web.sh`.
+**Release**
+
+Build the web version in release mode with `./scripts/release-web.sh` and upload the zip file to itch.io.
 
 ## Assets
 
-- **Textures**: Assets used on this project for textures are from [platformer/metroidvania asset pack](https://o-lobster.itch.io/platformmetroidvania-pixel-art-asset-pack) (by [O_Lobster](https://o-lobster.itch.io/)).
-- _Sounds_: Sounds generated with [rFXGen](https://raylibtech.itch.io/rfxgen).
+- **Textures**: Assets used for hero and tile for textures are from [platformer/metroidvania asset pack](https://o-lobster.itch.io/platformmetroidvania-pixel-art-asset-pack) (by [O_Lobster](https://o-lobster.itch.io/)). The flag asset I created it using [piskelapp](https://www.piskelapp.com).
+- **Sounds**: Sounds generated with [rFXGen](https://raylibtech.itch.io/rfxgen).
 
 ## Credits
 

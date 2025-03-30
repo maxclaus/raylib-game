@@ -282,6 +282,7 @@ typedef struct GameContext {
   Player player;
   SpriteVector level_tiles;
   Texture2D tiles_texture;
+  Texture2D flag_texture;
   Sound jump_sound;
   Sound win_sound;
   Sound lose_sound;
@@ -293,8 +294,9 @@ typedef struct GameContext {
 } GameContext;
 
 GameContext make_game_context(
-    Texture2D player_idle_texture, Texture2D tiles_texture, Sound jump_sound,
-    Sound win_sound, Sound lose_sound) {
+    Texture2D player_idle_texture, Texture2D tiles_texture,
+    Texture2D flag_texture, Sound jump_sound, Sound win_sound,
+    Sound lose_sound) {
   Player player = (Player){
       .sprite =
           (Sprite){
@@ -315,6 +317,7 @@ GameContext make_game_context(
                        .player = player,
                        .level_tiles = load_level(tiles_texture),
                        .tiles_texture = tiles_texture,
+                       .flag_texture = flag_texture,
                        .jump_sound = jump_sound,
                        .win_sound = win_sound,
                        .lose_sound = lose_sound,
@@ -430,6 +433,27 @@ void UpdateDrawFrame(GameContext *ctx) {
       Rectangle source = {.x = 16, .y = 0, .width = 16, .height = 16};
       if (i == 0) {
         source.y = 48;
+        int flag_size = 32.0;
+        Sprite flag = (Sprite){
+            .texture = ctx->flag_texture,
+            .vel = (Vector2){.x = 0, .y = 0},
+            .dest_rect =
+                (Rectangle){
+                    .x = tile.dest_rect.x,
+                    .y = tile.dest_rect.y - 32,
+                    .width = flag_size,
+                    .height = flag_size,
+                },
+        };
+
+        DrawTexturePro(
+            flag.texture,
+            (Rectangle){.x = 0, .y = 0, .width = 32, .height = 32},  // source
+            flag.dest_rect,                                          // dest
+            (Vector2){0, 0},                                         // origin
+            0.0,                                                     // rotation
+            RAYWHITE                                                 // color
+        );
       }
 
       DrawTexturePro(
@@ -466,12 +490,14 @@ int main(void) {
   Texture2D player_idle_texture =
       LoadTexture("assets/herochar_idle_anim_strip_4.png");
   Texture2D tiles_texture = LoadTexture("assets/tileset.png");
+  Texture2D flag_texture = LoadTexture("assets/flag.png");
   Sound jump_sound = LoadSound("assets/jump.wav");
   Sound win_sound = LoadSound("assets/win.wav");
   Sound lose_sound = LoadSound("assets/lose.wav");
 
   GameContext ctx = make_game_context(
-      player_idle_texture, tiles_texture, jump_sound, win_sound, lose_sound);
+      player_idle_texture, tiles_texture, flag_texture, jump_sound, win_sound,
+      lose_sound);
 
 #if defined(PLATFORM_WEB)
   emscripten_set_main_loop_arg(ESUpdateDrawFrame, &ctx, FPS_FRAMELIMIT, 1);
@@ -487,6 +513,7 @@ int main(void) {
   // free memory
   UnloadTexture(player_idle_texture);
   UnloadTexture(tiles_texture);
+  UnloadTexture(flag_texture);
   UnloadSound(jump_sound);
   UnloadSound(win_sound);
   UnloadSound(lose_sound);
